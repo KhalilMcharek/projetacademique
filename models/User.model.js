@@ -13,7 +13,9 @@ const schema = mongoose.Schema({
    
     password : String,
     skills: [{type : mongoose.Schema.Types.ObjectId , ref : SkillModel}],
-    supervisorId : {type : mongoose.Schema.Types.ObjectId , ref : 'User'}
+    supervisorId : {type : mongoose.Schema.Types.ObjectId , ref : 'User'},
+    resetKey : String,
+    resetTimeout : Date
 })
 
 module.exports = mongoose.model('User' , schema)

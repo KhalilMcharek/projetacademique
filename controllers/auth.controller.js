@@ -1,6 +1,8 @@
 const UserModel = require("../models/User.model")
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
+const { reset } = require("nodemon")
+const uuid = require('uuid')
 exports.register = (req, res) => {
 
     UserModel.findOne({ email: req.body.email })
@@ -69,11 +71,59 @@ exports.login = async(req, res) => {
         res.status(425).send(err)
     }
 }
-
-
-exports.forgotPassword = (req, res) => {
-
+const nodemailer = require ('nodemailer')
+const transporter = nodemailer.createTransport( {
+ service : 'gmail' , 
+auth : {
+    user : process.env.user_mail,
+    pass:  process.env.mail_pass
 }
-exports.resetPassword = (req, res) => {
+})
+
+exports.forgotPassword = async (req, res) => {
+try {
+ let user =await UserModel.findOne ({email : req.body.email})
+  if(!user){
+    return res.status(400).send(err)
+  } else {
+    let resetKey = uuid.v4()
+    user.resetKey = resetKey
+    await user.save()
+console.log(process.env.user_mail)
+    let mailContent = {
+        from : 'Node app',
+        to : 'mcharek1541@gmail.com',
+        subject : 'reset' ,
+        text : 'reset key :' +resetKey ,
+        html : `reset link : <a href=" http://localhost:3000/reset/${resetKey}"> here </a>`
+
+    }
+    await transporter.sendMail(mailContent)
+    res.send({message : 'mail sent successfully'})
+  }
+   
+}catch(err){
+    console.log(err)
+    res.status(422).send(err)
+}
+}
+exports.resetPassword = async(req, res) => {
+    if (req.body.resetKey && req.body.newPass) { 
+    try {  
+        let user = await UserModel.findOne({resetKey : req.body.resetKey})
+        if(!user){
+            res.status(422).send({messsage:'invalid account'})
+        }else {
+            let salt = await bcrypt.genSalt(10)
+            user.password = await bcrypt.hash(req.body.newPass, salt)
+            await user.save()
+            res.send({message : 'user updated'})
+        }
+
+    }catch(err){
+        console.log(err)
+        res.status(422).send(err)
+    }
+}
 
 }
